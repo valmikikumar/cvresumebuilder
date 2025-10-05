@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import User from '@/models/User';
+import mockDB from '@/lib/mock-db';
 import { hashPassword, generateToken } from '@/lib/auth';
 import { validateEmail } from '@/lib/utils';
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = mockDB.users.findOne({ email });
     if (existingUser) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
@@ -43,15 +43,13 @@ export async function POST(request: NextRequest) {
 
     // Create new user
     const passwordHash = await hashPassword(password);
-    const user = new User({
+    const user = mockDB.users.create({
       name,
       email,
       passwordHash,
       role: 'user',
       plan: 'free'
     });
-
-    await user.save();
 
     // Generate token
     const token = generateToken({

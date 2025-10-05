@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import Template from '@/models/Template';
+import mockDB from '@/lib/mock-db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,9 +29,7 @@ export async function GET(request: NextRequest) {
       query.isPremium = isPremium === 'true';
     }
 
-    const templates = await Template.find(query)
-      .sort({ downloadCount: -1, rating: -1 })
-      .select('-htmlTemplate -css');
+    const templates = mockDB.templates.find(query);
 
     return NextResponse.json({ templates });
 

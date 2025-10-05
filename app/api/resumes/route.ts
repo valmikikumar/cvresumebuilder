@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import Resume from '@/models/Resume';
+import mockDB from '@/lib/mock-db';
 import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
@@ -15,9 +15,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const resumes = await Resume.find({ userId: user._id })
-      .sort({ lastEdited: -1 })
-      .select('-data');
+    const resumes = mockDB.resumes.find({ userId: user._id });
 
     return NextResponse.json({ resumes });
 
@@ -51,15 +49,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const resume = new Resume({
+    const resume = mockDB.resumes.create({
       userId: user._id,
       title,
       templateId,
       data,
       lastEdited: new Date()
     });
-
-    await resume.save();
 
     return NextResponse.json({
       message: 'Resume created successfully',

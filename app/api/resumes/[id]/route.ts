@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import Resume from '@/models/Resume';
+import mockDB from '@/lib/mock-db';
 import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(
@@ -18,12 +18,8 @@ export async function GET(
       );
     }
 
-    const resume = await Resume.findOne({ 
-      _id: params.id, 
-      userId: user._id 
-    });
-
-    if (!resume) {
+    const resume = mockDB.resumes.findOne({ _id: params.id });
+    if (!resume || resume.userId !== user._id) {
       return NextResponse.json(
         { error: 'Resume not found' },
         { status: 404 }
@@ -58,40 +54,28 @@ export async function PUT(
 
     const { title, data } = await request.json();
 
-    const resume = await Resume.findOne({ 
-      _id: params.id, 
-      userId: user._id 
-    });
-
-    if (!resume) {
+    const resume = mockDB.resumes.findOne({ _id: params.id });
+    if (!resume || resume.userId !== user._id) {
       return NextResponse.json(
         { error: 'Resume not found' },
         { status: 404 }
       );
     }
 
-    // Create version backup
-    const version = {
-      version: resume.versions.length + 1,
-      data: resume.data,
-      createdAt: new Date()
-    };
-
-    resume.title = title || resume.title;
-    resume.data = data || resume.data;
-    resume.lastEdited = new Date();
-    resume.versions.push(version);
-
-    await resume.save();
+    const updatedResume = mockDB.resumes.findByIdAndUpdate(params.id, {
+      title: title || resume.title,
+      data: data || resume.data,
+      lastEdited: new Date()
+    });
 
     return NextResponse.json({
       message: 'Resume updated successfully',
       resume: {
-        id: resume._id,
-        title: resume.title,
-        templateId: resume.templateId,
-        lastEdited: resume.lastEdited,
-        isPublic: resume.isPublic
+        id: updatedResume._id,
+        title: updatedResume.title,
+        templateId: updatedResume.templateId,
+        lastEdited: updatedResume.lastEdited,
+        isPublic: updatedResume.isPublic
       }
     });
 
@@ -119,19 +103,15 @@ export async function DELETE(
       );
     }
 
-    const resume = await Resume.findOne({ 
-      _id: params.id, 
-      userId: user._id 
-    });
-
-    if (!resume) {
+    const resume = mockDB.resumes.findOne({ _id: params.id });
+    if (!resume || resume.userId !== user._id) {
       return NextResponse.json(
         { error: 'Resume not found' },
         { status: 404 }
       );
     }
 
-    await Resume.findByIdAndDelete(params.id);
+    mockDB.resumes.findByIdAndDelete(params.id);
 
     return NextResponse.json({
       message: 'Resume deleted successfully'

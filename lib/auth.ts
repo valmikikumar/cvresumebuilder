@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { NextRequest } from 'next/server';
-import User, { IUser } from '@/models/User';
+import mockDB from '@/lib/mock-db';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -32,7 +32,7 @@ export function verifyToken(token: string): TokenPayload | null {
   }
 }
 
-export async function getCurrentUser(request: NextRequest): Promise<IUser | null> {
+export async function getCurrentUser(request: NextRequest): Promise<any | null> {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
@@ -45,8 +45,12 @@ export async function getCurrentUser(request: NextRequest): Promise<IUser | null
       return null;
     }
 
-    const user = await User.findById(payload.userId).select('-passwordHash');
-    return user;
+    const user = mockDB.users.findOne({ _id: payload.userId });
+    if (user) {
+      const { passwordHash, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    }
+    return null;
   } catch (error) {
     return null;
   }
@@ -68,7 +72,7 @@ export function requireAuth(handler: Function) {
 }
 
 export function requireAdmin(handler: Function) {
-  return async (request: NextRequest, user: IUser, ...args: any[]) => {
+  return async (request: NextRequest, user: any, ...args: any[]) => {
     if (user.role !== 'admin') {
       return new Response(
         JSON.stringify({ error: 'Admin access required' }),

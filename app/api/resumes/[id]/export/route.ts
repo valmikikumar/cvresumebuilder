@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import Resume from '@/models/Resume';
-import Template from '@/models/Template';
+import mockDB from '@/lib/mock-db';
 import { getCurrentUser } from '@/lib/auth';
 import { generateResumePDF } from '@/lib/pdf-generator';
 
@@ -23,12 +22,8 @@ export async function POST(
     const { format = 'pdf' } = await request.json();
 
     // Get resume
-    const resume = await Resume.findOne({ 
-      _id: params.id, 
-      userId: user._id 
-    });
-
-    if (!resume) {
+    const resume = mockDB.resumes.findOne({ _id: params.id });
+    if (!resume || resume.userId !== user._id) {
       return NextResponse.json(
         { error: 'Resume not found' },
         { status: 404 }
@@ -36,7 +31,7 @@ export async function POST(
     }
 
     // Get template
-    const template = await Template.findById(resume.templateId);
+    const template = mockDB.templates.findOne({ _id: resume.templateId });
     if (!template) {
       return NextResponse.json(
         { error: 'Template not found' },

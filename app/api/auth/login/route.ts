@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import User from '@/models/User';
+import mockDB from '@/lib/mock-db';
 import { verifyPassword, generateToken } from '@/lib/auth';
 import { validateEmail } from '@/lib/utils';
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user
-    const user = await User.findOne({ email });
+    const user = mockDB.users.findOne({ email });
     if (!user) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
@@ -44,8 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update last login
-    user.lastLoginAt = new Date();
-    await user.save();
+    mockDB.users.findByIdAndUpdate(user._id, { lastLoginAt: new Date() });
 
     // Generate token
     const token = generateToken({

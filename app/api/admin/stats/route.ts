@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import User from '@/models/User';
-import Resume from '@/models/Resume';
-import Payment from '@/models/Payment';
+import mockDB from '@/lib/mock-db';
 import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
@@ -17,49 +15,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get current date for monthly calculations
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    // Fetch stats in parallel
-    const [
-      totalUsers,
-      totalResumes,
-      totalPayments,
-      monthlyRevenue,
-      activeUsers,
-      premiumUsers
-    ] = await Promise.all([
-      User.countDocuments(),
-      Resume.countDocuments(),
-      Payment.countDocuments({ status: 'completed' }),
-      Payment.aggregate([
-        {
-          $match: {
-            status: 'completed',
-            createdAt: { $gte: startOfMonth }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$amount' }
-          }
-        }
-      ]),
-      User.countDocuments({
-        lastLoginAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
-      }),
-      User.countDocuments({ plan: { $in: ['premium', 'enterprise'] } })
-    ]);
+    // Get mock stats
+    const users = mockDB.users.find({});
+    const resumes = mockDB.resumes.find({});
+    const templates = mockDB.templates.find({});
 
     const stats = {
-      totalUsers,
-      totalResumes,
-      totalPayments,
-      monthlyRevenue: monthlyRevenue[0]?.total || 0,
-      activeUsers,
-      premiumUsers
+      totalUsers: users.length,
+      totalResumes: resumes.length,
+      totalTemplates: templates.length,
+      monthlyRevenue: 1250.00, // Mock revenue
+      activeUsers: Math.floor(users.length * 0.7), // 70% active
+      premiumUsers: users.filter(u => u.plan !== 'free').length
     };
 
     return NextResponse.json({ stats });
